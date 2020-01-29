@@ -4272,6 +4272,10 @@
         "category": "Message",
         "code": 6228
     },
+    "Formats errors and messages (experimental): 'json'": {
+        "category": "Message",
+        "code": 6229
+    },
 
     "Projects to reference": {
         "category": "Message",

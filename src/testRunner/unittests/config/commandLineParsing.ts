@@ -414,6 +414,32 @@ namespace ts {
                 });
         });
 
+        it("parse --formatter json", () => {
+            assertParseResult(["--formatter", "json", "0.ts"],
+                {
+                    errors: [],
+                    fileNames: ["0.ts"],
+                    options: { formatter: FormatterKind.Json }
+                });
+        });
+
+        // TODO(RH): add validation
+        // it("errors on missing or invalid argument to --formatter", () => {
+        //     assertParseResult(["--formatter", "0.ts"],
+        //         {
+        //             errors: [],
+        //             fileNames: ["0.ts"],
+        //             options: {}
+        //         });
+
+        //     assertParseResult(["--formatter", "lol", "0.ts"],
+        //         {
+        //             errors: [],
+        //             fileNames: ["0.ts"],
+        //             options: {}
+        //         });
+        // });
+
         describe("Watch options", () => {
             it("parse --watchFile", () => {
                 assertParseResult(["--watchFile", "UseFsEvents", "0.ts"],

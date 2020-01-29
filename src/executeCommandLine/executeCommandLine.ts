@@ -15,8 +15,16 @@ namespace ts {
     function updateReportDiagnostic(
         sys: System,
         existing: DiagnosticReporter,
-        options: CompilerOptions | BuildOptions
+        options: CompilerOptions | BuildOptions,
+        diagnosticListCollection?: Diagnostic[]
     ): DiagnosticReporter {
+        if (options.formatter === FormatterKind.Json && diagnosticListCollection) {
+            return diagnostic => {
+                // TODO(RH): maybe normalize here?
+                diagnosticListCollection.push(diagnostic);
+            };
+        }
+
         return shouldBePretty(sys, options) ?
             createDiagnosticReporter(sys, /*pretty*/ true) :
             existing;
@@ -251,6 +259,43 @@ namespace ts {
             return sys.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);
         }
 
+        const diagnosticListCollection: Diagnostic[] = [];
+
+        function cleanSourceFile(diagnosticListCollection: Diagnostic[]) {
+            diagnosticListCollection.forEach(diagnostic => {
+                const file = diagnostic.file;
+                // @ts-ignore
+                // console.log(file);
+                if (file) {
+                    // TODO(RH): discuss the shape of this field with the core TypeScript team.
+                    // We should provide enough information for users/tools to be able to
+                    // reconstruct the error message, if they need to
+                    // @ts-ignore
+                    diagnostic.fileInfo = {
+                        fileName: file.fileName,
+                    };
+
+                    diagnostic.file = undefined;
+                }
+
+                if (diagnostic.relatedInformation) {
+                    cleanSourceFile(diagnostic.relatedInformation);
+                }
+            });
+        }
+
+        const wrappedCallback: ExecuteCommandLineCallbacks = program => {
+            if (commandLine.options.formatter === FormatterKind.Json) {
+                cleanSourceFile(diagnosticListCollection);
+
+                // @ts-ignore
+                // console.log(diagnosticListCollection[0], diagnosticListCollection[1]);
+                sys.write(JSON.stringify(diagnosticListCollection, undefined, 2));
+            }
+
+            cb(program);
+        };
+
         const currentDirectory = sys.getCurrentDirectory();
         const commandLineOptions = convertToOptionsWithAbsolutePaths(
             commandLine.options,
@@ -263,7 +308,8 @@ namespace ts {
                     reportDiagnostic = updateReportDiagnostic(
                         sys,
                         reportDiagnostic,
-                        configParseResult.options
+                        configParseResult.options,
+                        diagnosticListCollection
                     );
                     configParseResult.errors.forEach(reportDiagnostic);
                     return sys.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);
@@ -275,13 +321,14 @@ namespace ts {
             reportDiagnostic = updateReportDiagnostic(
                 sys,
                 reportDiagnostic,
-                configParseResult.options
+                configParseResult.options,
+                diagnosticListCollection
             );
             if (isWatchSet(configParseResult.options)) {
                 if (reportWatchModeWithoutSysSupport(sys, reportDiagnostic)) return;
                 return createWatchOfConfigFile(
                     sys,
-                    cb,
+                    wrappedCallback,
                     reportDiagnostic,
                     configParseResult,
                     commandLineOptions,
@@ -292,7 +339,7 @@ namespace ts {
             else if (isIncrementalCompilation(configParseResult.options)) {
                 performIncrementalCompilation(
                     sys,
-                    cb,
+                    wrappedCallback,
                     reportDiagnostic,
                     configParseResult
                 );
@@ -300,7 +347,7 @@ namespace ts {
             else {
                 performCompilation(
                     sys,
-                    cb,
+                    wrappedCallback,
                     reportDiagnostic,
                     configParseResult
                 );
@@ -315,13 +362,14 @@ namespace ts {
             reportDiagnostic = updateReportDiagnostic(
                 sys,
                 reportDiagnostic,
-                commandLineOptions
+                commandLineOptions,
+                diagnosticListCollection
             );
             if (isWatchSet(commandLineOptions)) {
                 if (reportWatchModeWithoutSysSupport(sys, reportDiagnostic)) return;
                 return createWatchOfFilesAndCompilerOptions(
                     sys,
-                    cb,
+                    wrappedCallback,
                     reportDiagnostic,
                     commandLine.fileNames,
                     commandLineOptions,
@@ -332,7 +380,7 @@ namespace ts {
             else if (isIncrementalCompilation(commandLineOptions)) {
                 performIncrementalCompilation(
                     sys,
-                    cb,
+                    wrappedCallback,
                     reportDiagnostic,
                     { ...commandLine, options: commandLineOptions }
                 );
@@ -340,7 +388,7 @@ namespace ts {
             else {
                 performCompilation(
                     sys,
-                    cb,
+                    wrappedCallback,
                     reportDiagnostic,
                     { ...commandLine, options: commandLineOptions }
                 );

@@ -5052,6 +5052,7 @@ namespace ts {
         emitDecoratorMetadata?: boolean;
         experimentalDecorators?: boolean;
         forceConsistentCasingInFileNames?: boolean;
+        /*@internal*/formatter?: FormatterKind;
         /*@internal*/generateCpuProfile?: string;
         /*@internal*/help?: boolean;
         importHelpers?: boolean;
@@ -5229,6 +5230,10 @@ namespace ts {
     export const enum LanguageVariant {
         Standard,
         JSX
+    }
+
+    export const enum FormatterKind {
+        Json,
     }
 
     /** Either a parsed command line or a parsed tsconfig.json */

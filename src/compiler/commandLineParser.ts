@@ -278,6 +278,18 @@ namespace ts {
             isCommandLineOnly: true,
             description: Diagnostics.Print_names_of_files_that_are_part_of_the_compilation_and_then_stop_processing
         },
+        {
+            name: "formatter",
+            type: createMapFromTemplate({
+                json: FormatterKind.Json,
+            }),
+            category: Diagnostics.Command_line_Options,
+            showInSimplifiedHelpView: true,
+            affectsSemanticDiagnostics: true,
+            affectsEmit: true,
+            isCommandLineOnly: true,
+            description: Diagnostics.Formats_errors_and_messages_experimental_Colon_json
+        },
 
         // Basic
         {
@@ -1398,6 +1410,9 @@ namespace ts {
         if (buildOptions.watch && buildOptions.dry) {
             errors.push(createCompilerDiagnostic(Diagnostics.Options_0_and_1_cannot_be_combined, "watch", "dry"));
         }
+        // TODO(RH): when is this option invalid (together with whom)?
+        // - formatter and watch?
+        // - what else?
 
         return { buildOptions, watchOptions, projects, errors };
     }
